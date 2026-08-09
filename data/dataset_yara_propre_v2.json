@@ -1,0 +1,1145 @@
+[
+  {
+    "id": "RAN_001",
+    "description": "Ransomware qui chiffre les fichiers .docx et .pdf en utilisant les API cryptographiques Windows et affiche une note de rançon",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "encryption",
+      "ransom_note",
+      "documents",
+      "CryptEncrypt"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Ransomware_Documents {\n    meta:\n        description = \"Ransomware ciblant documents Office et PDF\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $crypt1 = \"CryptEncrypt\"\n        $crypt2 = \"CryptGenKey\"\n        $ext1 = \".docx\" nocase\n        $ext2 = \".pdf\" nocase\n        $ext3 = \".xlsx\" nocase\n        $ransom1 = \"YOUR_FILES_ARE_ENCRYPTED\" nocase\n        $ransom2 = \"HOW_TO_DECRYPT\" nocase\n        $hex1 = { 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 85 C0 }\n    condition:\n        (1 of ($crypt*)) and (1 of ($ext*)) and (1 of ($ransom*))\n}"
+  },
+  {
+    "id": "RAN_002",
+    "description": "Ransomware demandant un paiement Bitcoin avec adresse de wallet et timer de pression",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "bitcoin",
+      "wallet",
+      "payment",
+      "timer"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Ransomware_Bitcoin {\n    meta:\n        description = \"Ransomware avec demande de rançon Bitcoin\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $btc1 = \"bitcoin\" nocase\n        $btc2 = \"BTC\" fullword\n        $wallet = /[13][a-km-zA-HJ-NP-Z1-9]{25,34}/\n        $timer = \"hours remaining\" nocase\n        $pay = \"send payment\" nocase\n        $decrypt = \"after payment\" nocase\n    condition:\n        ($btc1 or $btc2) and $wallet and (1 of ($timer, $pay, $decrypt))\n}"
+  },
+  {
+    "id": "RAN_003",
+    "description": "Ransomware renommant les fichiers victimes avec l'extension .locked apres chiffrement",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "locked",
+      "extension",
+      "rename",
+      "MoveFile"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Ransomware_LockedExtension {\n    meta:\n        description = \"Ransomware ajoutant extension .locked\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $ext = \".locked\" nocase\n        $rename = \"MoveFileEx\"\n        $crypt = \"CryptEncrypt\"\n        $enum = \"FindFirstFile\"\n        $hex_rename = { 8B 45 ?? 50 FF 15 ?? ?? ?? ?? 85 C0 74 }\n    condition:\n        $ext and $rename and ($crypt or $enum)\n}"
+  },
+  {
+    "id": "RAN_004",
+    "description": "Ransomware supprimant les shadow copies Windows pour empecher la restauration des fichiers",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "shadowcopy",
+      "vssadmin",
+      "recovery_prevention",
+      "wmic"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Ransomware_DeleteShadowCopies {\n    meta:\n        description = \"Suppression des shadow copies pour bloquer la restauration\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $vss1 = \"vssadmin delete shadows\" nocase\n        $vss2 = \"vssadmin.exe\" nocase\n        $wmic = \"wmic shadowcopy delete\" nocase\n        $bcdedit = \"bcdedit /set\" nocase\n        $recover = \"recoveryenabled no\" nocase\n    condition:\n        ($vss1 or $vss2 or $wmic) and (1 of ($bcdedit, $recover))\n}"
+  },
+  {
+    "id": "RAN_005",
+    "description": "Ransomware ciblant les dossiers utilisateurs Windows tels que Documents, Desktop et Pictures",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "user_folders",
+      "Documents",
+      "Desktop",
+      "Pictures",
+      "enumeration"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Ransomware_UserFolders {\n    meta:\n        description = \"Ransomware enumerant et chiffrant les dossiers utilisateurs\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $folder1 = \"\\\\Documents\\\\\" nocase\n        $folder2 = \"\\\\Desktop\\\\\" nocase\n        $folder3 = \"\\\\Pictures\\\\\" nocase\n        $folder4 = \"\\\\Downloads\\\\\" nocase\n        $enum = \"FindFirstFileW\"\n        $crypt = \"CryptEncrypt\"\n    condition:\n        (2 of ($folder*)) and $enum and $crypt\n}"
+  },
+  {
+    "id": "TRO_001",
+    "description": "Trojan ouvrant une porte derobee reseau en ecoutant sur un port specifique pour recevoir des commandes",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "backdoor",
+      "socket",
+      "WSAStartup",
+      "bind",
+      "listen"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Trojan_NetworkBackdoor {\n    meta:\n        description = \"Trojan backdoor reseau avec socket en ecoute\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $wsa = \"WSAStartup\"\n        $bind = \"bind\" fullword\n        $listen = \"listen\" fullword\n        $accept = \"accept\" fullword\n        $recv = \"recv\" fullword\n        $hex_sock = { 6A 02 6A 01 6A 02 FF 15 }\n    condition:\n        $wsa and $bind and $listen and $accept and $recv\n}"
+  },
+  {
+    "id": "TRO_002",
+    "description": "Trojan executant des commandes systeme via cmd.exe en creant un processus cache",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "cmd",
+      "CreateProcess",
+      "hidden",
+      "execution"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Trojan_CMDExecution {\n    meta:\n        description = \"Trojan executant cmd.exe de maniere cachee\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $cmd = \"cmd.exe\" nocase\n        $create = \"CreateProcessW\"\n        $hidden = { 00 00 00 00 01 00 00 00 }\n        $shell = \"/c \" nocase\n        $startup = \"STARTF_USESHOWWINDOW\"\n    condition:\n        $cmd and $create and ($shell or $startup)\n}"
+  },
+  {
+    "id": "TRO_003",
+    "description": "Trojan telechargeant un payload malveillant depuis un serveur distant via HTTP",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "downloader",
+      "URLDownloadToFile",
+      "http",
+      "payload"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Trojan_HTTPDownloader {\n    meta:\n        description = \"Trojan telechargeur de payload via HTTP\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $url1 = \"URLDownloadToFileA\"\n        $url2 = \"URLDownloadToFileW\"\n        $http = \"http://\" nocase\n        $https = \"https://\" nocase\n        $winhttp = \"WinHttpOpen\"\n        $agent = \"User-Agent:\" nocase\n    condition:\n        (1 of ($url*)) and (1 of ($http, $https)) and (1 of ($winhttp, $agent))\n}"
+  },
+  {
+    "id": "TRO_004",
+    "description": "Trojan assurant sa persistance en ajoutant une cle dans le registre Run de Windows",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "registry",
+      "persistence",
+      "Run",
+      "HKCU",
+      "RegSetValue"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Trojan_RegistryPersistence {\n    meta:\n        description = \"Trojan avec persistance via registre Windows\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $reg1 = \"SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\" nocase\n        $reg2 = \"RegSetValueEx\"\n        $hkcu = \"HKEY_CURRENT_USER\" nocase\n        $hklm = \"HKEY_LOCAL_MACHINE\" nocase\n        $hex_reg = { 68 ?? ?? ?? ?? 6A 00 FF 15 ?? ?? ?? ?? 85 C0 }\n    condition:\n        $reg1 and $reg2 and (1 of ($hkcu, $hklm))\n}"
+  },
+  {
+    "id": "TRO_005",
+    "description": "Trojan etablissant un reverse shell vers un serveur attaquant pour controle a distance",
+    "famille": "trojan",
+    "danger": "critique",
+    "tags": [
+      "reverse_shell",
+      "connect",
+      "socket",
+      "cmd",
+      "remote_control"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Trojan_ReverseShell {\n    meta:\n        description = \"Trojan reverse shell vers serveur attaquant\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $sock = \"WSAStartup\"\n        $connect = \"connect\" fullword\n        $cmd = \"cmd.exe\" nocase\n        $dup = \"SetStdHandle\"\n        $pipe = \"CreatePipe\"\n        $hex_rev = { 6A 10 53 FF 15 ?? ?? ?? ?? 85 C0 }\n    condition:\n        $sock and $connect and $cmd and (1 of ($dup, $pipe))\n}"
+  },
+  {
+    "id": "WOR_001",
+    "description": "Ver se propageant via le protocole SMB en exploitant des partages reseau Windows",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "SMB",
+      "network",
+      "propagation",
+      "WNetOpenEnum",
+      "shares"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Worm_SMBPropagation {\n    meta:\n        description = \"Ver se propageanant via partages SMB\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $smb = \"\\\\\\\\%s\\\\\" nocase\n        $net1 = \"WNetOpenEnumW\"\n        $net2 = \"WNetEnumResourceW\"\n        $copy = \"CopyFileW\"\n        $ipc = \"IPC$\" nocase\n        $admin = \"ADMIN$\" nocase\n    condition:\n        (1 of ($net*)) and $copy and (1 of ($ipc, $admin))\n}"
+  },
+  {
+    "id": "WOR_002",
+    "description": "Ver se copiant automatiquement sur les cles USB connectees au systeme",
+    "famille": "worm",
+    "danger": "moyen",
+    "tags": [
+      "USB",
+      "removable_drive",
+      "autorun",
+      "CopyFile",
+      "GetDriveType"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Worm_USBSpread {\n    meta:\n        description = \"Ver se copiant sur les peripheriques USB\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $drive = \"GetDriveTypeW\"\n        $removable = { 02 00 00 00 }\n        $copy = \"CopyFileW\"\n        $autorun = \"autorun.inf\" nocase\n        $monitor = \"WM_DEVICECHANGE\"\n    condition:\n        $drive and $copy and (1 of ($autorun, $monitor))\n}"
+  },
+  {
+    "id": "WOR_003",
+    "description": "Ver scannant le reseau local pour identifier des machines vulnerables avant infection",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "IP_scan",
+      "socket",
+      "connect",
+      "port_scan",
+      "network_enum"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Worm_IPScanner {\n    meta:\n        description = \"Ver avec scanner IP reseau local\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $sock = \"WSAStartup\"\n        $connect = \"connect\" fullword\n        $inet = \"inet_addr\"\n        $htons = \"htons\"\n        $scan = { 83 C0 01 3D FF 00 00 00 7E }\n    condition:\n        $sock and $connect and $inet and $htons\n}"
+  },
+  {
+    "id": "WOR_004",
+    "description": "Ver capable de se copier lui-meme et de lancer ses propres copies de maniere autonome",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "self_replication",
+      "GetModuleFileName",
+      "CopyFile",
+      "CreateProcess"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Worm_SelfReplication {\n    meta:\n        description = \"Ver auto-replicant creant des copies de lui-meme\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $self1 = \"GetModuleFileNameW\"\n        $self2 = \"GetTempPathW\"\n        $copy = \"CopyFileW\"\n        $exec = \"CreateProcessW\"\n        $hex_self = { FF 15 ?? ?? ?? ?? 8B F0 85 F6 74 }\n    condition:\n        $self1 and $copy and $exec\n}"
+  },
+  {
+    "id": "WOR_005",
+    "description": "Ver se diffusant par email en envoyant des copies malveillantes aux contacts de la victime",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "email",
+      "SMTP",
+      "mass_mailing",
+      "contacts",
+      "attachment"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Worm_EmailSpread {\n    meta:\n        description = \"Ver se propageant par envoi massif d emails\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $smtp = \"SMTP\" nocase\n        $mail1 = \"RCPT TO:\" nocase\n        $mail2 = \"MAIL FROM:\" nocase\n        $attach = \"Content-Disposition: attachment\" nocase\n        $outlook = \"Outlook.Application\" nocase\n        $contacts = \"GetAddressList\" nocase\n    condition:\n        $smtp and (1 of ($mail*)) and (1 of ($attach, $outlook, $contacts))\n}"
+  },
+  {
+    "id": "SPY_001",
+    "description": "Spyware enregistrant toutes les frappes clavier via hook Windows et sauvegardant dans un fichier",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "keylogger",
+      "SetWindowsHookEx",
+      "WH_KEYBOARD_LL",
+      "GetAsyncKeyState"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Spyware_Keylogger {\n    meta:\n        description = \"Keylogger via hook clavier Windows\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $hook1 = \"SetWindowsHookExW\"\n        $hook2 = \"GetAsyncKeyState\"\n        $hook3 = \"WH_KEYBOARD_LL\"\n        $log = \"WriteFile\"\n        $hex_hook = { 6A 00 6A 0D FF 15 ?? ?? ?? ?? 85 C0 }\n    condition:\n        (1 of ($hook*)) and $log\n}"
+  },
+  {
+    "id": "SPY_002",
+    "description": "Spyware prenant des captures d ecran periodiques et les envoyant au serveur attaquant",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "screenshot",
+      "BitBlt",
+      "GetDesktopWindow",
+      "exfiltration"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Spyware_Screenshot {\n    meta:\n        description = \"Spyware avec capture d ecran periodique\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $blt = \"BitBlt\"\n        $desktop = \"GetDesktopWindow\"\n        $dc = \"GetWindowDC\"\n        $bmp = \"CreateCompatibleBitmap\"\n        $send = \"InternetWriteFile\"\n    condition:\n        $blt and $desktop and $dc and $bmp\n}"
+  },
+  {
+    "id": "SPY_003",
+    "description": "Spyware volant les mots de passe et historique enregistres dans les navigateurs web",
+    "famille": "spyware",
+    "danger": "critique",
+    "tags": [
+      "browser",
+      "credentials",
+      "Chrome",
+      "Firefox",
+      "password_theft"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Spyware_BrowserStealer {\n    meta:\n        description = \"Spyware volant les credentials des navigateurs\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $chrome = \"\\\\Google\\\\Chrome\\\\User Data\" nocase\n        $firefox = \"\\\\Mozilla\\\\Firefox\\\\Profiles\" nocase\n        $sqlite = \"Login Data\" nocase\n        $decrypt = \"CryptUnprotectData\"\n        $copy = \"CopyFileW\"\n    condition:\n        (1 of ($chrome, $firefox)) and $sqlite and $decrypt\n}"
+  },
+  {
+    "id": "SPY_004",
+    "description": "Spyware activant la webcam de la victime pour enregistrer des videos a son insu",
+    "famille": "spyware",
+    "danger": "critique",
+    "tags": [
+      "webcam",
+      "video_capture",
+      "capCreateCaptureWindow",
+      "surveillance"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Spyware_WebcamCapture {\n    meta:\n        description = \"Spyware avec activation webcam cachee\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $cap1 = \"capCreateCaptureWindow\" nocase\n        $cap2 = \"capDriverConnect\" nocase\n        $cap3 = \"WM_CAP_START\" nocase\n        $avicap = \"avicap32.dll\" nocase\n        $record = \"capCaptureSequence\" nocase\n    condition:\n        (2 of ($cap*)) and ($avicap or $record)\n}"
+  },
+  {
+    "id": "SPY_005",
+    "description": "Spyware surveillant et volant le contenu du presse-papiers Windows de facon continue",
+    "famille": "spyware",
+    "danger": "moyen",
+    "tags": [
+      "clipboard",
+      "GetClipboardData",
+      "OpenClipboard",
+      "data_theft"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Spyware_ClipboardMonitor {\n    meta:\n        description = \"Spyware volant le contenu du presse-papiers\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $open = \"OpenClipboard\"\n        $get = \"GetClipboardData\"\n        $close = \"CloseClipboard\"\n        $timer = \"SetTimer\"\n        $hex_clip = { FF 15 ?? ?? ?? ?? 50 FF 15 ?? ?? ?? ?? 85 C0 }\n    condition:\n        $open and $get and $close and $timer\n}"
+  },
+  {
+    "id": "DRO_001",
+    "description": "Dropper utilisant PowerShell pour telecharger et executer un payload malveillant",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "PowerShell",
+      "DownloadString",
+      "IEX",
+      "bypass",
+      "execution"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Dropper_PowerShell {\n    meta:\n        description = \"Dropper via PowerShell avec download et execution\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $ps1 = \"powershell\" nocase\n        $download = \"DownloadString\" nocase\n        $iex = \"IEX\" nocase\n        $bypass = \"ExecutionPolicy Bypass\" nocase\n        $enc = \"-EncodedCommand\" nocase\n        $webclient = \"Net.WebClient\" nocase\n    condition:\n        $ps1 and (1 of ($download, $webclient)) and (1 of ($iex, $bypass, $enc))\n}"
+  },
+  {
+    "id": "DRO_002",
+    "description": "Dropper utilisant BITSAdmin pour telecharger des fichiers malveillants en arriere-plan",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "bitsadmin",
+      "BITS",
+      "background_transfer",
+      "LOLBin"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Dropper_BITSAdmin {\n    meta:\n        description = \"Dropper utilisant BITSAdmin pour download furtif\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $bits1 = \"bitsadmin\" nocase\n        $bits2 = \"IBackgroundCopyManager\" nocase\n        $transfer = \"/transfer\" nocase\n        $create = \"CreateJob\" nocase\n        $url = \"AddFile\" nocase\n    condition:\n        (1 of ($bits*)) and (1 of ($transfer, $create, $url))\n}"
+  },
+  {
+    "id": "DRO_003",
+    "description": "Dropper telechargant un payload via requete HTTP et le sauvegardant dans le dossier temp",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "http",
+      "download",
+      "temp",
+      "WinINet",
+      "InternetReadFile"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Dropper_HTTPDownload {\n    meta:\n        description = \"Dropper telechargant payload via HTTP dans temp\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $inet = \"InternetOpenW\"\n        $read = \"InternetReadFile\"\n        $temp = \"GetTempPathW\"\n        $write = \"WriteFile\"\n        $http = \"http://\" nocase\n    condition:\n        $inet and $read and $temp and $write\n}"
+  },
+  {
+    "id": "DRO_004",
+    "description": "Dropper extrayant un payload cache dans une archive ZIP embarquee dans ses ressources",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "ZIP",
+      "extraction",
+      "embedded",
+      "payload",
+      "resource"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Dropper_ZIPExtraction {\n    meta:\n        description = \"Dropper extrayant payload depuis archive ZIP\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $zip_magic = { 50 4B 03 04 }\n        $resource = \"FindResourceW\"\n        $load = \"LoadResource\"\n        $extract = \"LockResource\"\n        $write = \"WriteFile\"\n    condition:\n        $zip_magic and (2 of ($resource, $load, $extract)) and $write\n}"
+  },
+  {
+    "id": "DRO_005",
+    "description": "Dropper lancant le malware telecharge apres verification de son existence sur le disque",
+    "famille": "dropper",
+    "danger": "critique",
+    "tags": [
+      "launcher",
+      "CreateProcess",
+      "ShellExecute",
+      "file_check",
+      "execution"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Dropper_MalwareLauncher {\n    meta:\n        description = \"Dropper lancant le malware telecharge\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $check = \"GetFileAttributesW\"\n        $exec1 = \"CreateProcessW\"\n        $exec2 = \"ShellExecuteW\"\n        $temp = \"%TEMP%\" nocase\n        $appdata = \"%APPDATA%\" nocase\n        $hex_exec = { 6A 00 6A 00 6A 00 6A 00 6A 00 FF 15 }\n    condition:\n        $check and (1 of ($exec*)) and (1 of ($temp, $appdata))\n}"
+  },
+  {
+    "id": "ROO_001",
+    "description": "Rootkit chargeant un driver kernel malveillant pour se rendre invisible dans le systeme",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "driver",
+      "kernel",
+      "CreateService",
+      "NtLoadDriver",
+      "ring0"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Rootkit_HiddenDriver {\n    meta:\n        description = \"Rootkit installant un driver kernel cache\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $drv1 = \"NtLoadDriver\"\n        $drv2 = \"ZwLoadDriver\"\n        $svc = \"CreateServiceW\"\n        $sys = \".sys\" nocase\n        $scm = \"OpenSCManagerW\"\n        $hex_drv = { 68 ?? ?? ?? ?? E8 ?? ?? ?? ?? 85 C0 0F 84 }\n    condition:\n        (1 of ($drv*)) and ($svc or $scm) and $sys\n}"
+  },
+  {
+    "id": "ROO_002",
+    "description": "Rootkit interceptant les appels systeme via hook SSDT pour masquer son activite",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "SSDT",
+      "hook",
+      "syscall",
+      "kernel",
+      "NtQuerySystemInformation"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Rootkit_SSDTHook {\n    meta:\n        description = \"Rootkit avec hook SSDT pour intercepter syscalls\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $ssdt = \"KeServiceDescriptorTable\"\n        $hook1 = \"NtQuerySystemInformation\"\n        $hook2 = \"NtEnumerateValueKey\"\n        $cr0 = { 0F 20 C0 }\n        $disable_wp = { 0F 22 C0 }\n    condition:\n        $ssdt and (1 of ($hook*)) and $cr0\n}"
+  },
+  {
+    "id": "ROO_003",
+    "description": "Rootkit masquant ses processus malveillants des outils de surveillance systeme",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "process_hiding",
+      "DKOM",
+      "EPROCESS",
+      "ActiveProcessLinks",
+      "unlink"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Rootkit_ProcessHiding {\n    meta:\n        description = \"Rootkit masquant processus via DKOM\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $eproc = \"EPROCESS\" nocase\n        $links = \"ActiveProcessLinks\" nocase\n        $flink = { 8B 80 ?? 00 00 00 8B 40 04 89 40 FC }\n        $pslist = \"PsGetCurrentProcess\"\n        $hide = \"RemoveEntryList\"\n    condition:\n        (1 of ($eproc, $links)) and (1 of ($flink, $hide))\n}"
+  },
+  {
+    "id": "ROO_004",
+    "description": "Rootkit cachant ses fichiers malveillants du systeme de fichiers en interceptant les appels API",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "file_hiding",
+      "NtQueryDirectoryFile",
+      "hook",
+      "stealth",
+      "IRP"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Rootkit_FileHiding {\n    meta:\n        description = \"Rootkit cachant ses fichiers via hook NtQueryDirectoryFile\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $query = \"NtQueryDirectoryFile\"\n        $irp = \"IRP_MJ_DIRECTORY_CONTROL\" nocase\n        $filter = \"FltRegisterFilter\" nocase\n        $hex_irp = { 8B 44 24 04 8B 40 ?? 8B 40 ?? FF E0 }\n    condition:\n        $query and (1 of ($irp, $filter))\n}"
+  },
+  {
+    "id": "ROO_005",
+    "description": "Rootkit desactivant les outils de securite et antivirus pour eviter la detection",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "AV_killer",
+      "security_disable",
+      "TerminateProcess",
+      "token_privilege"
+    ],
+    "source": "manuel",
+    "regle_yara": "rule Rootkit_SecurityDisable {\n    meta:\n        description = \"Rootkit desactivant les solutions de securite\"\n        author = \"Dataset_YARA\"\n        date = \"2026\"\n    strings:\n        $priv = \"AdjustTokenPrivileges\"\n        $kill = \"TerminateProcess\"\n        $wdac = \"WdBoot\" nocase\n        $av1 = \"MsMpEng.exe\" nocase\n        $av2 = \"avast\" nocase\n        $elam = \"ELAM\" nocase\n    condition:\n        $priv and $kill and (1 of ($wdac, $av1, $av2, $elam))\n}"
+  },
+  {
+    "id": "SYN_RAN_001",
+    "description": "Ransomware ciblant les fichiers multimédia .mp4, .jpg et .png en utilisant BCryptEncrypt",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "ransomware",
+      "BCryptEncrypt",
+      "multimedia"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware ciblant les fichiers multimedia .mp4 .jpg .png en utilisant BCryptEncrypt au lieu de CryptEncrypt",
+    "regle_yara": "rule Ransomware_Multimedia {\n    meta:\n        description = \"Ransomware ciblant les fichiers multimédia .mp4, .jpg et .png\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"BCryptEncrypt\" nocase\n        $s2 = \"BCryptGenKey\" nocase\n        $ext1 = \".mp4\" nocase\n        $ext2 = \".jpg\" nocase\n        $ext3 = \".png\" nocase\n        $ransom1 = \"VOS_FICHIERS_SONT_CRYPTES\" nocase\n        $hex1 = { 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 85 C0 }\n    condition:\n        (1 of ($s*)) and (2 of ($ext*)) and ($ransom1 or $hex1)\n}"
+  },
+  {
+    "id": "SYN_RAN_002",
+    "description": "Ransomware utilisant OpenSSL pour le chiffrement et ajoutant l'extension .enc aux fichiers",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "ransomware",
+      "OpenSSL",
+      "encryption"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware utilisant OpenSSL pour le chiffrement et ajoutant l extension .enc aux fichiers",
+    "regle_yara": "rule Ransomware_OpenSSL_Enc {\n    meta:\n        description = \"Ransomware utilisant OpenSSL pour le chiffrement et ajoutant l'extension .enc aux fichiers\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"openssl\" nocase\n        $s2 = \"RSA_private_encrypt\" nocase\n        $s3 = \".enc\" nocase\n        $s4 = \"encrypted files\" nocase\n        $hex1 = { 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 36 }\n    condition:\n        ($s1 and $s2) and ($s3 or $s4) and ($hex1 at 0x100)\n}"
+  },
+  {
+    "id": "SYN_RAN_003",
+    "description": "Ransomware mobile ciblant les fichiers Android et demandant un paiement Monero",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "Ransomware",
+      "Android",
+      "Monero"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware mobile ciblant les fichiers Android et demandant un paiement Monero",
+    "regle_yara": "rule Ransomware_Monero {\n    meta:\n        description = \"Ransomware mobile ciblant les fichiers Android et demandant un paiement Monero\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"Monero\" nocase\n        $s2 = \"android\" nocase\n        $s3 = \"PAYMENT_ID\" nocase\n        $s4 = \"DECRYPT_INSTRUCTIONS\" nocase\n        $hex1 = { 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 85 C0 }\n        $hex2 = { 2F 2F 2F 2F 2F 2F 2F 2F 2F 2F 2F 2F 2F 2F }\n    condition:\n        ($s1 and $s2) and (1 of ($s3, $s4)) and (1 of ($hex1, $hex2))\n}"
+  },
+  {
+    "id": "SYN_RAN_004",
+    "description": "Detection de ransomware avec double extension .docx.crypt et suppression des fichiers originaux apres chiffrement",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "ransomware",
+      "double_extension",
+      "suppression_fichiers"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware avec double extension .docx.crypt et suppression des fichiers originaux apres chiffrement",
+    "regle_yara": "rule Ransomware_DocxCrypt {\n    meta:\n        description = \"Ransomware avec double extension .docx.crypt\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"crypt\" nocase\n        $s2 = \".docx.crypt\" nocase\n        $s3 = \"Suppression des fichiers originaux\" nocase\n        $s4 = \"Chiffrement des donnees\" nocase\n        $hex1 = { 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 85 C0 }\n    condition:\n        ($s2 and ($s1 or $s3)) or ($hex1 and ($s4))\n}"
+  },
+  {
+    "id": "SYN_RAN_005",
+    "description": "Ransomware ciblant les bases de données SQL et sauvegardant une note dans chaque dossier",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "ransomware",
+      "sql",
+      "base_de_donnees"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware ciblant les bases de donnees SQL et sauvegardant une note dans chaque dossier",
+    "regle_yara": "rule Ransomware_SQL {\n    meta:\n        description = \"Ransomware ciblant les bases de données SQL et sauvegardant une note dans chaque dossier\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"sqlserver\" nocase\n        $s2 = \"mssql\" nocase\n        $s3 = \"DATABASE_ENCRYPTED\" nocase\n        $s4 = \"DECRYPT_INSTRUCTIONS\" nocase\n        $hex1 = { 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 85 C0 }\n        $hex2 = { 8B ?? ?? ?? ?? 8B ?? ?? ?? ?? 89 ?? ?? ?? ?? }\n    condition:\n        (1 of ($s1, $s2)) and (1 of ($s3, $s4)) and (1 of ($hex1, $hex2))\n}"
+  },
+  {
+    "id": "SYN_RAN_006",
+    "description": "Dtection d'un ransomware utilisant un timer de compte rebours de 72 heures avant destruction des clés",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "ransomware",
+      "timer",
+      "compte_rebours"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware utilisant un timer de compte a rebours de 72 heures avant destruction des cles",
+    "regle_yara": "rule Ransomware_CompteRebours {\n    meta:\n        description = \"Ransomware utilisant un timer de compte rebours de 72 heures avant destruction des clés\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"72 heures\" nocase\n        $s2 = \"Compte rebours\" nocase\n        $s3 = \"Destruction des clés\" nocase\n        $s4 = \"Ransomware activé\" nocase\n        $s5 = \"Clés de décryptage\" nocase\n    condition:\n        (2 of ($s*)) and (3 of ($s*) or $s1)"
+  },
+  {
+    "id": "SYN_RAN_007",
+    "description": "Ransomware se propageant via partages reseau avant de chiffrer les fichiers partages",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "ransomware",
+      "partage reseau",
+      "chiffrement"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware se propagant via partages reseau avant de chiffrer les fichiers partages",
+    "regle_yara": "rule Ransomware_Reseau {\n    meta:\n        description = \"Ransomware se propageant via partages reseau\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"\\\\\\\\\\\\\\\" nocase\n        $s2 = \"\\\\\\\" nocase\n        $s3 = \"_shared\" nocase\n        $s4 = \"Network\" nocase\n        $s5 = \"FileShare\" nocase\n        $hex1 = { 8B ?? ?? ?? ?? 8B ?? ?? ?? ?? 3B ?? ?? ?? ?? }\n    condition:\n        (2 of ($s*)) and ($hex1) and (pe.imports(\"Ws2_32.dll\") or pe.imports(\"Netapi32.dll\"))\n}"
+  },
+  {
+    "id": "SYN_RAN_008",
+    "description": "Détection d'un ransomware avec mécanisme anti-debug",
+    "famille": "ransomware",
+    "danger": "critique",
+    "tags": [
+      "ransomware",
+      "anti-debug",
+      "malware"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ransomware avec mecanisme anti-debug qui verifie la presence d un debugger avant execution",
+    "regle_yara": "rule Ransomware_AntiDebug {\n    meta:\n        description = \"Ransomware avec mécanisme anti-debug\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"IsDebuggerPresent\" nocase\n        $s2 = \"CheckRemoteDebuggerPresent\" nocase\n        $s3 = \"OutputDebugStringA\" nocase\n        $s4 = \"YOUR_FILES_ARE_ENCRYPTED\" nocase\n        $hex1 = { 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 85 C0 }\n        $hex2 = { E8 ?? ?? ?? ?? 83 C4 04 85 C0 }\n    condition:\n        (any of ($s1, $s2, $s3)) and (1 of ($s4)) and (1 of ($hex1, $hex2))\n}"
+  },
+  {
+    "id": "SYN_TRO_009",
+    "description": "Détection d'un Trojan utilisant le protocole DNS pour exfiltrer des données en encodant en base64 dans les requêtes",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "trojan",
+      "dns",
+      "exfiltration",
+      "base64"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan utilisant le protocole DNS pour exfiltrer des donnees en encodant en base64 dans les requetes",
+    "regle_yara": "rule Trojan_DNS_Exfiltration {\n    meta:\n        description = \"Trojan utilisant DNS pour exfiltrer des données en base64\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $dns = \"gethostbyname\" fullword\n        $base64 = \"Base64Encode\" fullword\n        $send = \"send\" fullword\n        $dns_query = \"DnsQuery_A\" fullword\n        $hex_dns = { 4C 00 49 00 53 00 54 00 45 00 4E 00 }\n    condition:\n        ($dns and $base64) and ($send or $dns_query) and $hex_dns\n}"
+  },
+  {
+    "id": "SYN_TRO_010",
+    "description": "Détection d'un Trojan se déguisant en mise à jour Windows légitime avec faux certificat signé",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "Trojan",
+      "Faux Certificat",
+      "Mise à jour Windows"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan se deguisant en mise a jour Windows legitime avec faux certificat signe",
+    "regle_yara": "rule Trojan_FauxUpdate {\n    meta:\n        description = \"Trojan se déguisant en mise à jour Windows légitime avec faux certificat signé\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"Windows Update\" fullword\n        $s2 = \"Microsoft Corporation\" nocase\n        $s3 = \"Certificat auto-signé\" nocase\n        $hex1 = { 45 78 65 63 75 74 65 20 61 73 20 61 64 6d 69 6e }\n    condition:\n        ($s1 and $s2) and ($s3 or $hex1)\n}"
+  },
+  {
+    "id": "SYN_TRO_011",
+    "description": "Détection d'un Trojan utilisant des pipes nommés pour communiquer avec d'autres processus malveillants",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "Trojan",
+      "Pipes nommés",
+      "Communication inter-processus"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan utilisant des pipes nommes pour communiquer avec d autres processus malveillants",
+    "regle_yara": "rule Trojan_PipesNommees {\n    meta:\n        description = \"Trojan utilisant des pipes nommés pour communiquer avec d'autres processus malveillants\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"CreateNamedPipeA\" fullword\n        $s2 = \"ConnectNamedPipe\" fullword\n        $s3 = \"WriteFile\" fullword\n        $s4 = \"ReadFile\" fullword\n        $hex1 = { 68 01 00 00 00 6A 00 }\n    condition:\n        ($s1 or $s2) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_TRO_012",
+    "description": "Detection d'un Trojan injectant du code dans le processus explorer.exe",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "trojan",
+      "injection de code",
+      "explorer.exe"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan injectant du code dans le processus explorer.exe pour se rendre invisible",
+    "regle_yara": "rule Trojan_ExplorerInjection {\n    meta:\n        description = \"Trojan injectant du code dans explorer.exe\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"CreateRemoteThread\" fullword\n        $s2 = \"WriteProcessMemory\" fullword\n        $s3 = \"VirtualAllocEx\" fullword\n        $s4 = \"GetWindowTextA\" fullword\n        $hex1 = { 0x68 0x33 0x32 0x31 0x30 }\n    condition:\n        ($s1 and $s2) or ($s3 and $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_TRO_013",
+    "description": "Détection de Trojan utilisant le protocole HTTPS pour masquer ses communications C2",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "malware",
+      "trojan",
+      "https"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan utilisant le protocole HTTPS pour masquer ses communications C2 dans du trafic legitime",
+    "regle_yara": "rule Trojan_HTTPS_C2 {\n    meta:\n        description = \"Trojan utilisant HTTPS pour masquer ses communications C2\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"https://\" fullword\n        $s2 = \"SSL_connect\" fullword\n        $s3 = \"TLS_client\" fullword\n        $s4 = \"Certificate\" fullword\n        $hex1 = { 47 45 54 20 2F 20 48 54 54 50 53 20 31 2E 31 }\n    condition:\n        ($s1 and $s2) or ($s3 and $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_TRO_014",
+    "description": "Detection d'un trojan créant une tache planifiée Windows pour assurer sa persistance au redémarrage",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "trojan",
+      "persistance",
+      "tache_planifiee"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan creant une tache planifiee Windows pour assurer sa persistance au redemarrage",
+    "regle_yara": "rule Trojan_Persistence {\n    meta:\n        description = \"Trojan créant une tache planifiée Windows pour assurer sa persistance au redémarrage\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"schtasks.exe\" fullword\n        $s2 = \"Create\" fullword\n        $s3 = \"ScheduledTask\" fullword\n        $s4 = \"Trigger\" fullword\n        $hex1 = { 53 63 68 74 61 73 6B 73 }\n    condition:\n        ($s1 and $s2) or ($s3 and $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_TRO_015",
+    "description": "Détection d'un trojan volant les tokens d'authentification depuis la mémoire des processus actifs",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "trojan",
+      "vol_token",
+      "memoire_processus"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan volant les tokens d authentification depuis la memoire des processus actifs",
+    "regle_yara": "rule Trojan_TokenStealer {\n    meta:\n        description = \"Trojan volant les tokens d'authentification depuis la mémoire des processus actifs\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"GetTokenInformation\" fullword\n        $s2 = \"OpenProcessToken\" fullword\n        $s3 = \"ReadProcessMemory\" fullword\n        $s4 = \"WriteProcessMemory\" fullword\n        $hex1 = { 8B 45 08 50 8D 45 08 50 }\n    condition:\n        ($s1 and $s2) or ($s3 and $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_TRO_016",
+    "description": "Détection d'un trojan utilisant WMI pour exécuter des commandes sans créer de nouveaux processus",
+    "famille": "trojan",
+    "danger": "eleve",
+    "tags": [
+      "Trojan",
+      "WMI",
+      "Malware"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Trojan utilisant WMI pour executer des commandes sans creer de nouveaux processus",
+    "regle_yara": "rule Trojan_WMI {\n    meta:\n        description = \"Trojan utilisant WMI pour exécuter des commandes sans créer de nouveaux processus\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"IWbemServices\" fullword\n        $s2 = \"ExecNotificationQuery\" fullword\n        $s3 = \"CreateInstance\" fullword\n        $hex1 = { 4C 8B 0D 00 00 00 00 49 8B 45 10 }\n    condition:\n        $s1 and ($s2 or $s3) and $hex1\n}"
+  },
+  {
+    "id": "SYN_WOR_017",
+    "description": "Détection d'un ver exploitant une vulnérabilité RDP pour se propager sur les machines Windows exposées",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "RDP",
+      "Vulnérabilité",
+      "Worm"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver exploitant une vulnerabilite RDP pour se propager sur les machines Windows exposees",
+    "regle_yara": "rule Worm_RDPPropagation {\n    meta:\n        description = \"Ver exploitant une vulnérabilité RDP\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"mstscax.dll\" nocase\n        $s2 = \"RDP\" nocase\n        $s3 = \"winsta.dll\" nocase\n        $s4 = \"FreeRDP\" nocase\n        $hex1 = { 33 c0 8b c4 8b d6 03 d6 }\n    condition:\n        ($s1 or $s2) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_WOR_018",
+    "description": "Detection d'un ver utilisant les API LinkedIn pour se propager via messages prives avec piece jointe",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "Worm",
+      "LinkedIn",
+      "API",
+      "Propagation"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver utilisant les API LinkedIn pour se propager via messages prives avec piece jointe",
+    "regle_yara": "rule Worm_LinkedInPropagation {\n    meta:\n        description = \"Ver utilisant les API LinkedIn pour se propager via messages prives avec piece jointe\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"https://api.linkedin.com/v2/\" nocase\n        $s2 = \"message/create\" nocase\n        $s3 = \"attachment/upload\" nocase\n        $hex1 = { 2f 61 70 69 2f 6c 69 6e 6b 65 64 69 6e 2f 76 32 }\n    condition:\n        ($s1 and $s2) and ($s3 or $hex1)\n}"
+  },
+  {
+    "id": "SYN_WOR_019",
+    "description": "Détection d'un ver infectant les conteneurs Docker en exploitant des API non sécurisées",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "Docker",
+      "API",
+      "Worm"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver infectant les conteneurs Docker en exploitant des API non securisees",
+    "regle_yara": "rule Worm_DockerExploit {\n    meta:\n        description = \"Ver exploitant des API Docker non sécurisées\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"docker.sock\" nocase\n        $s2 = \"/var/run/docker.sock\" nocase\n        $s3 = \"CreateContainer\" nocase\n        $s4 = \"StartContainer\" nocase\n        $hex1 = { 63 6f 6e 74 61 69 6e 65 72 2e 64 6f 63 6b 65 72 2e 63 6f 6d } \n    condition:\n        ($s1 or $s2) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_WOR_020",
+    "description": "Détection d'un ver ciblant les serveurs SSH avec attaque par dictionnaire puis dépôt de payload",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "SSH",
+      "attaque par dictionnaire",
+      "worm"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver ciblant les serveurs SSH avec attaque par dictionnaire puis depot de payload",
+    "regle_yara": "rule Worm_SSHAttack {\n    meta:\n        description = \"Ver ciblant les serveurs SSH avec attaque par dictionnaire puis dépôt de payload\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"ssh\" nocase\n        $s2 = \"username\" nocase\n        $s3 = \"password\" nocase\n        $hex1 = { 73 73 68 2d 32 2e 30 2d 4f 70 65 6e 53 53 48 5f 32 2e 30 }\n    condition:\n        $s1 and ($s2 or $s3) and $hex1\n}"
+  },
+  {
+    "id": "SYN_WOR_021",
+    "description": "Dtection d'un ver se propageant via les partages de fichiers cloud comme OneDrive ou Dropbox",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "malware",
+      "cloud",
+      "worm"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver se propagant via les partages de fichiers cloud comme OneDrive ou Dropbox",
+    "regle_yara": "rule Worm_CloudPropagation {\n    meta:\n        description = \"Ver se propageant via partages de fichiers cloud\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"https://www.dropbox.com\" nocase\n        $s2 = \"https://onedrive.live.com\" nocase\n        $s3 = \"api.dropboxapi.com\" nocase\n        $s4 = \"graph.microsoft.com\" nocase\n        $hex1 = { 68 74 74 70 73 3a 2f 2f 6f 6e 65 64 72 69 76 65 2e 6c 69 76 65 2e 63 6f 6d }\n    condition:\n        (2 of ($s1, $s2, $s3, $s4)) and $hex1\n}"
+  },
+  {
+    "id": "SYN_WOR_022",
+    "description": "Détection d'un ver exploitant les vulnérabilités des routeurs pour créer un botnet de machines infectées",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "botnet",
+      "routeur",
+      "vulnérabilité",
+      "ver"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver exploitant les vulnerabilites des routeurs pour creer un botnet de machines infectees",
+    "regle_yara": "rule Router_Botnet_Worm {\n    meta:\n        description = \"Ver créant un botnet via exploitation de vulnérabilités de routeurs\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"http://\" nocase\n        $s2 = \"router_config\" nocase\n        $s3 = \"telnet\" nocase\n        $s4 = \"enable\" nocase\n        $hex1 = { 74 65 6c 6e 65 74 20 2d 6c 20 70 61 73 73 77 64 }\n    condition:\n        (1 of ($s1, $s2, $s3, $s4)) and $hex1\n}"
+  },
+  {
+    "id": "SYN_WOR_023",
+    "description": "Detection d'un ver ciblant les appareils IoT via Telnet avec identifiants par defaut",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "IoT",
+      "Telnet",
+      "Worm"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver ciblant les appareils IoT via Telnet avec identifiants par defaut",
+    "regle_yara": "rule Worm_TelnetIoT {\n    meta:\n        description = \"Ver ciblant les appareils IoT via Telnet avec identifiants par defaut\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"telnetd\" nocase\n        $s2 = \"login: \" nocase\n        $s3 = \"password: \" nocase\n        $hex1 = { 74 65 6c 6e 65 74 64 00 }\n    condition:\n        $s1 and ($s2 or $s3) and $hex1\n}"
+  },
+  {
+    "id": "SYN_WOR_024",
+    "description": "Detection d'un ver utilisant le protocole SNMP pour scanner et infecter les equipements reseau",
+    "famille": "worm",
+    "danger": "eleve",
+    "tags": [
+      "SNMP",
+      "worm",
+      "reseau"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Ver utilisant le protocole SNMP pour scanner et infecter les equipements reseau",
+    "regle_yara": "rule Worm_SNMPPropagation {\n    meta:\n        description = \"Detection d'un ver utilisant le protocole SNMP\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"snmpget\" nocase\n        $s2 = \"snmpset\" nocase\n        $s3 = \"community\" nocase\n        $s4 = \"public\" nocase\n        $hex1 = { 30 81 9f 02 01 03 30 0d 06 09 2b 06 01 02 01 01 05 00 }\n    condition:\n        (2 of ($s1, $s2)) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_SPY_025",
+    "description": "Détection de spyware enregistrant les conversations audio via le microphone et les envoyant compressées",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "audio",
+      "compression"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware enregistrant les conversations audio via le microphone et les envoyant compresses",
+    "regle_yara": "rule Spyware_Audio {\n    meta:\n        description = \"Spyware enregistrant les conversations audio\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"waveInOpen\"\n        $s2 = \"waveInPrepareHeader\"\n        $s3 = \"waveInAddBuffer\"\n        $s4 = \"Deflate\"\n        $s5 = \"CreateFileMapping\"\n        $hex1 = { 68 00 00 00 00 6A 00 6A 00 FF 15 ?? ?? ?? ?? }\n    condition:\n        (2 of ($s1, $s2, $s3)) and ($s4 or $s5) and $hex1\n}"
+  },
+  {
+    "id": "SYN_SPY_026",
+    "description": "Detection d'un spyware interceptant les communications chiffrees en installant un certificat racine malveillant",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "certificat racine",
+      "communications chiffrees"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware interceptant les communications chiffrees en installant un certificat racine malveillant",
+    "regle_yara": "rule Spyware_CertificatMalveillant {\n    meta:\n        description = \"Spyware interceptant les communications chiffrees\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"CertEnroll\" \n        $s2 = \"InstallCertificate\" \n        $s3 = \"RootCertificate\" \n        $s4 = \"MicrosoftCryptoAPI\" \n        $s5 = \"CreateCertificateChainEngine\" \n        $hex1 = { 4D 5A 90 00 03 00 00 00 04 00 00 00 FF FF 00 00 }\n    condition:\n        (2 of ($s1, $s2, $s3, $s4, $s5)) and $hex1\n}"
+  },
+  {
+    "id": "SYN_SPY_027",
+    "description": "Détection d'un spyware ciblant les applications de messagerie pour extraire les conversations",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "messagerie",
+      "whatsapp"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware ciblant les applications de messagerie comme WhatsApp pour extraire les conversations",
+    "regle_yara": "rule Spyware_Messagerie {\n    meta:\n        description = \"Spyware ciblant les applications de messagerie\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"WhatsApp\"\n        $s2 = \"GetConversationHistory\"\n        $s3 = \"SendMessage\"\n        $s4 = \"GetContactList\"\n        $hex1 = { 4C 6F 61 64 4C 69 62 72 61 72 79 41 }\n    condition:\n        (2 of ($s*)) and $hex1\n}"
+  },
+  {
+    "id": "SYN_SPY_028",
+    "description": "Détection d'un spyware géolocalisant via les antennes WiFi et envoyant les coordonnées GPS",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "geolocalisation",
+      "WiFi"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware geolocalisant la victime via les antennes WiFi et envoyant les coordonnees GPS",
+    "regle_yara": "rule Spyware_GeoLocalisation {\n    meta:\n        description = \"Spyware géolocalisant via les antennes WiFi et envoyant les coordonnées GPS\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"GetAdapterInfo\"\n        $s2 = \"GetConnectedDevice\"\n        $s3 = \"GetLocationInfo\"\n        $s4 = \"https://api.mapbox.com\"\n        $hex1 = { 4C 00 49 00 62 00 63 00 61 00 6C 00 6C 00 }\n    condition:\n        (2 of ($s*)) and $hex1\n}"
+  },
+  {
+    "id": "SYN_SPY_029",
+    "description": "Détection d'un spyware exfiltrant des fichiers récemment modifiés via un canal FTP chiffré",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "exfiltration",
+      "ftp"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware exfiltrant les fichiers recemment modifies via un canal FTP chiffre",
+    "regle_yara": "rule Spyware_Exfiltration_FTP {\n    meta:\n        description = \"Spyware exfiltrant des fichiers récemment modifiés via FTP\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"ftp.exe\"\n        $s2 = \"ftp_put\"\n        $s3 = \"SSL/TLS\"\n        $s4 = \"file_modified\"\n        $hex1 = { 68 74 74 70 3A 2F 2F }\n    condition:\n        (2 of ($s1, $s2, $s3)) and ($hex1 at 0x100) and ($s4 == \"file_modified\")\n}"
+  },
+  {
+    "id": "SYN_SPY_030",
+    "description": "Détection de spyware surveillant les activités bancaires en ligne et capturant les formulaires soumis",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "banque",
+      "formulaires"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware surveillant les activites bancaires en ligne et capturant les formulaires soumis",
+    "regle_yara": "rule Spyware_Banque {\n    meta:\n        description = \"Spyware de surveillance des activités bancaires en ligne\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"https://secure.banque.fr\"\n        $s2 = \"formulaire_soumis\"\n        $s3 = \"login_bancaire\"\n        $s4 = \"password_bancaire\"\n        $s5 = \"captcha\"\n        $hex1 = { 68 74 74 70 73 3A 2F 2F }\n    condition:\n        (2 of ($s1, $s2, $s3, $s4, $s5)) and $hex1\n}"
+  },
+  {
+    "id": "SYN_SPY_031",
+    "description": "Détection de spyware enregistrant les sessions RDP et les replays pour analyser les actions admin",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "RDP",
+      "replay"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware enregistrant les sessions RDP et les replays pour analyser les actions admin",
+    "regle_yara": "rule Spyware_RDP_Replay {\n    meta:\n        description = \"Spyware enregistrant les sessions RDP et les replays\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"winsta.dll\"\n        $s2 = \"WTSOpenServer\"\n        $s3 = \"GetSystemMetrics\"\n        $s4 = \"CreateProcess\"\n        $hex1 = { 48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 }\n    condition:\n        (2 of ($s*)) and ($hex1) and (pe.imports(\"winsta.dll\") or pe.imports(\"user32.dll\"))\n}"
+  },
+  {
+    "id": "SYN_SPY_032",
+    "description": "Détection de spyware collectant les métadonnées des fichiers",
+    "famille": "spyware",
+    "danger": "eleve",
+    "tags": [
+      "spyware",
+      "métadonnées",
+      "collecte de données"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Spyware collectant les metadonnees des fichiers pour cartographier l activite de la victime",
+    "regle_yara": "rule Spyware_Metadonnees {\n    meta:\n        description = \"Spyware collectant les métadonnées des fichiers\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"GetFileAttributesW\"\n        $s2 = \"GetFileSizeEx\"\n        $s3 = \"GetFileTime\"\n        $s4 = \"CreateFileMappingW\"\n        $hex1 = { 4C 8B D1 48 8B 0D ?? ?? ?? ?? 48 8B 01 }\n    condition:\n        ($s1 and $s2) or ($s3 and $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_DRO_033",
+    "description": "Dropper utilisant une macro Office malveillante pour télécharger et exécuter un payload",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "dropper",
+      "macro office",
+      "malware"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper utilisant une macro Office malveillante pour telecharger et executer un payload",
+    "regle_yara": "rule Dropper_MacroOffice {\n    meta:\n        description = \"Dropper via macro Office avec téléchargement et exécution de payload\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"CreateObject\" nocase\n        $s2 = \"Microsoft.XMLHTTP\" nocase\n        $s3 = \"ADODB.Stream\" nocase\n        $s4 = \"SaveToFile\" nocase\n        $hex1 = { 68 74 74 70 3a 2f 2f } // \"http://\" en hexa\n    condition:\n        $s1 and ($s2 or $s3) and ($s4 and $hex1)\n}"
+  },
+  {
+    "id": "SYN_DRO_034",
+    "description": "Dropper cachant son payload dans les métadonnées EXIF d'une image JPEG innocente",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "dropper",
+      "exif",
+      "jpeg",
+      "malware"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper cachant son payload dans les metadonnees EXIF d une image JPEG innocente",
+    "regle_yara": "rule Dropper_Exif {\n    meta:\n        description = \"Dropper avec payload caché dans les métadonnées EXIF d'une image JPEG\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"Exif\\x00\\x00\" nocase\n        $s2 = \"http\" nocase\n        $s3 = \"payload\" nocase\n        $s4 = \"execute\" nocase\n    condition:\n        $s1 and (2 of ($s2, $s3, $s4))\n}"
+  },
+  {
+    "id": "SYN_DRO_035",
+    "description": "Dropper utilisant la steganographie pour dissimuler le payload dans un fichier PNG",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "dropper",
+      "steganographie",
+      "PNG"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper utilisant la steganographie pour dissimuler le payload dans un fichier PNG",
+    "regle_yara": "rule Dropper_Steganographie_PNG {\n    meta:\n        description = \"Dropper utilisant la steganographie pour dissimuler le payload dans un fichier PNG\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"PNG\" nocase\n        $s2 = \"IHDR\" nocase\n        $s3 = \"IDAT\" nocase\n        $s4 = \"steg\" nocase\n    condition:\n        $s1 and ($s2 or $s3) and $s4\n}"
+  },
+  {
+    "id": "SYN_DRO_036",
+    "description": "Dropper exploitant les scripts MSI Windows pour installer un malware en arriere plan",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "Dropper",
+      "MSI",
+      "Malware"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper exploitant les scripts MSI Windows pour installer un malware en arriere plan",
+    "regle_yara": "rule Dropper_MSI {\n    meta:\n        description = \"Dropper exploitant les scripts MSI Windows pour installer un malware en arriere plan\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"msiexec\" nocase\n        $s2 = \"CustomAction\" nocase\n        $s3 = \"InstallExecuteSequence\" nocase\n        $s4 = \"Admin\" nocase\n        $hex1 = { 6d 73 69 65 78 65 63 } // msiexec\n    condition:\n        $s1 and ($s2 or $s3) and ($s4 or $hex1)\n}"
+  },
+  {
+    "id": "SYN_DRO_037",
+    "description": "Dropper utilisant regsvr32 pour executer du code depuis un serveur distant sans fichier",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "dropper",
+      "regsvr32",
+      "code distant"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper utilisant regsvr32 pour executer du code depuis un serveur distant sans fichier",
+    "regle_yara": "rule Dropper_RegSvr32 {\n    meta:\n        description = \"Dropper utilisant regsvr32 pour executer du code depuis un serveur distant sans fichier\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $regsvr32 = \"regsvr32\" nocase\n        $http = \"http:\" nocase\n        $dll = \".dll\" nocase\n        $reg = \"reg\" nocase\n    condition:\n        $regsvr32 and ($http or $dll) and ($reg)\n}"
+  },
+  {
+    "id": "SYN_DRO_038",
+    "description": "Dropper avec payload dans un fichier PDF contenant du JavaScript malveillant",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "dropper",
+      "pdf",
+      "javascript",
+      "malware"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper embedant le payload dans un fichier PDF avec JavaScript malveillant integre",
+    "regle_yara": "rule Dropper_PDF_JS {\n    meta:\n        description = \"Dropper avec payload dans un fichier PDF contenant du JavaScript malveillant\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"obj.stream\" nocase\n        $s2 = \"JS\" nocase\n        $s3 = \"eval\" nocase\n        $s4 = \"unescape\" nocase\n        $hex1 = { 25 50 44 46 2d 31 2e 34 }\n    condition:\n        $s1 and ($s2 or $s3) and ($s4 or $hex1)\n}"
+  },
+  {
+    "id": "SYN_DRO_039",
+    "description": "Dropper utilisant mshta.exe pour executer des scripts HTA telecharges depuis internet",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "dropper",
+      "mshta",
+      "hta"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper utilisant mshta.exe pour executer des scripts HTA telecharges depuis internet",
+    "regle_yara": "rule Dropper_Mshta {\n    meta:\n        description = \"Dropper utilisant mshta.exe pour executer des scripts HTA telecharges depuis internet\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"mshta.exe\" nocase\n        $s2 = \"http://\" nocase\n        $s3 = \"https://\" nocase\n        $s4 = \"application/hta\" nocase\n    condition:\n        $s1 and (1 of ($s2, $s3)) and $s4\n}"
+  },
+  {
+    "id": "SYN_DRO_040",
+    "description": "Dropper se deguisant en installateur de logiciel legitime avec fausse interface graphique",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "malware",
+      "dropper",
+      "fausse interface"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper se deguisant en installateur de logiciel legitime avec fausse interface graphique",
+    "regle_yara": "rule Dropper_FauxInstallateur {\n    meta:\n        description = \"Dropper se deguisant en installateur de logiciel legitime avec fausse interface graphique\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"Install\" nocase\n        $s2 = \"Setup\" nocase\n        $s3 = \"Launch\" nocase\n        $hex1 = { 74 68 69 73 20 69 73 20 61 20 66 61 6b 65 20 69 6e 73 74 61 6c 6c 65 72 }\n    condition:\n        ($s1 or $s2) and $s3 and $hex1\n}"
+  },
+  {
+    "id": "SYN_DRO_041",
+    "description": "Dropper utilisant certutil.exe pour decoder et executer un payload encode en base64",
+    "famille": "dropper",
+    "danger": "eleve",
+    "tags": [
+      "dropper",
+      "certutil",
+      "base64"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Dropper utilisant certutil.exe pour decoder et executer un payload encode en base64",
+    "regle_yara": "rule Dropper_Certutil {\n    meta:\n        description = \"Dropper utilisant certutil.exe pour decoder et executer un payload encode en base64\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"certutil\" nocase\n        $s2 = \"decode\" nocase\n        $s3 = \"base64\" nocase\n        $s4 = \"execute\" nocase\n    condition:\n        $s1 and ($s2 or $s3) and $s4\n}"
+  },
+  {
+    "id": "SYN_ROO_042",
+    "description": "Détection d'un rootkit modifiant le MBR du disque dur pour s'exécuter avant le système d'exploitation",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "MBR",
+      "bootkit"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit modifiant le MBR du disque dur pour s executer avant le systeme d exploitation",
+    "regle_yara": "rule Rootkit_MBR_Modifier {\n    meta:\n        description = \"Rootkit modifiant le MBR pour s'exécuter avant le système d'exploitation\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"\\x33\\xc0\\x8e\\xd0\" // Code d'initialisation du MBR\n        $s2 = \"\\x8e\\xd0\\xb8\" // Code de chargement du secteur de démarrage\n        $s3 = \"IO\\x2F\\x53\\x4d\\x42\\x52\" // Chaîne de caractères pour le MBR\n        $s4 = \"\\x55\\xaa\" // Signature de fin du MBR\n        $hex1 = { 0x33 0xc0 0x8e 0xd0 0x8e 0xd0 0xb8 } // Pattern hexadécimal pour le code d'initialisation du MBR\n    condition:\n        ($s1 or $s2) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_ROO_043",
+    "description": "Rootkit utilisant les hyperviseurs pour s'installer sous le système d'exploitation cible",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "hyperviseur",
+      "malware"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit utilisant les hyperviseurs pour s installer sous le systeme d exploitation cible",
+    "regle_yara": "rule Rootkit_Hyperviseur {\n    meta:\n        description = \"Rootkit utilisant les hyperviseurs pour s'installer sous le système d'exploitation cible\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"Vmware\"\n        $s2 = \"VirtualBox\"\n        $s3 = \"Hyper-V\"\n        $s4 = \"KVM\"\n        $hex1 = { 66 3D 14 00 00 0F 84 }\n    condition:\n        (2 of ($s1, $s2, $s3, $s4)) and $hex1\n}"
+  },
+  {
+    "id": "SYN_ROO_044",
+    "description": "Rootkit infectant le firmware UEFI pour persister même après réinstallation de l'OS",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "Rootkit",
+      "UEFI",
+      "Persistence"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit infectant le firmware UEFI pour persister meme apres reinstallation de l OS",
+    "regle_yara": "rule Rootkit_UEFI_Persistence {\n    meta:\n        description = \"Rootkit infectant le firmware UEFI pour persister même après réinstallation de l'OS\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"EFI_SYSTEM_PARTITION\"\n        $s2 = \"Boot\\BootX64.efi\"\n        $s3 = \"\\\\\\\\.\\PhysicalDrive\"\n        $s4 = \"UEFI:\\\\\\Device\\\\Harddisk\"\n        $hex1 = { 4C 8B D1 49 8B 45 10 48 8B 40 18 }\n    condition:\n        ($s1 or $s2) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_ROO_045",
+    "description": "Detection d'un rootkit masquant les connexions reseau malveillantes dans les tables de routage systeme",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "masquage",
+      "routage"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit masquant les connexions reseau malveillantes dans les tables de routage systeme",
+    "regle_yara": "rule Rootkit_HiddenNetwork {\n    meta:\n        description = \"Rootkit masquant les connexions reseau malveillantes\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"NtOpenProcessToken\"\n        $s2 = \"ZwEnumerateKey\"\n        $s3 = \"CreateProcessAsUserW\"\n        $s4 = \"WSASocketW\"\n        $s5 = \"connect\" nocase\n        $hex1 = { 8B ?? ?? ?? ?? 8D ?? ?? ?? ?? 6A ?? 6A ?? 6A ?? }\n    condition:\n        (2 of ($s1, $s2, $s3)) and ($s4 or $s5) and $hex1\n}"
+  },
+  {
+    "id": "SYN_ROO_046",
+    "description": "Détection d'un rootkit modifiant les timestamps des fichiers pour masquer les traces d'infection récente",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "timestamp",
+      "masquer",
+      "infection"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit modifiant les timestamps des fichiers pour masquer toute trace d infection recente",
+    "regle_yara": "rule Rootkit_TimestampMasquer {\n    meta:\n        description = \"Rootkit modifiant les timestamps des fichiers\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"SetFileTime\"\n        $s2 = \"GetFileTime\"\n        $s3 = \"FileTimeToSystemTime\"\n        $s4 = \"SystemTimeToFileTime\"\n        $hex1 = { 68 ?? ?? ?? ?? E8 ?? ?? ?? ?? 89 45 ?? }\n    condition:\n        (2 of ($s*)) and ($hex1) and (filesize < 100KB)\n}"
+  },
+  {
+    "id": "SYN_ROO_047",
+    "description": "Détection d'un rootkit désactivant les journaux Windows Event Log pour effacer les preuves d'intrusion",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "Windows Event Log",
+      "intrusion"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit desactivant les journaux Windows Event Log pour effacer les preuves d intrusion",
+    "regle_yara": "rule Rootkit_EventLog_Disabler {\n    meta:\n        description = \"Rootkit désactivant les journaux Windows Event Log\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"WevtUtil.exe\" nocase\n        $s2 = \"cl\" nocase\n        $s3 = \"EventLog\" nocase\n        $s4 = \"StopService\" nocase\n        $hex1 = { 6A 00 6A 00 6A 00 58 50 68 00 00 00 00 68 00 00 00 00 }\n    condition:\n        ($s1 and $s2) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_ROO_048",
+    "description": "Détection de rootkit utilisant les certificats de signature de drivers pour se faire passer pour légitime",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "driver",
+      "certificat"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit utilisant les certificats de signature de drivers pour se faire passer pour legitime",
+    "regle_yara": "rule Rootkit_SignatureDriver {\n    meta:\n        description = \"Rootkit utilisant les certificats de signature de drivers pour se faire passer pour légitime\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"CertOpenStore\" \n        $s2 = \"CryptVerifyCertificateSignature\" \n        $s3 = \"DriverEntry\" \n        $s4 = \"IoCreateDriver\" \n        $hex1 = { 48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 }\n    condition:\n        (all of ($s1, $s2)) and ($s3 or $s4) and $hex1\n}"
+  },
+  {
+    "id": "SYN_ROO_049",
+    "description": "Rootkit interceptant les appels au systeme de fichiers pour masquer ses cles de registre",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "masquerie",
+      "systeme de fichiers"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit interceptant les appels au systeme de fichiers pour masquer ses cles de registre",
+    "regle_yara": "rule Rootkit_FileSystemInterceptor {\n    meta:\n        description = \"Rootkit interceptant les appels au systeme de fichiers pour masquer ses cles de registre\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"NtOpenFile\"\n        $s2 = \"ZwOpenFile\"\n        $s3 = \"RegCreateKeyExW\"\n        $s4 = \"RegSetValueExW\"\n        $s5 = \"filesystem\" nocase\n        $hex1 = { 8B ?? ?? ?? ?? 89 ?? ?? ?? ?? 8D ?? ?? ?? ?? }\n    condition:\n        (2 of ($s1, $s2, $s3, $s4)) and $s5 and $hex1\n}"
+  },
+  {
+    "id": "SYN_ROO_050",
+    "description": "Detection d'un rootkit patchant le kernel en memoire pour desactiver les mecanismes de securite Windows",
+    "famille": "rootkit",
+    "danger": "critique",
+    "tags": [
+      "rootkit",
+      "kernel",
+      "securite"
+    ],
+    "source": "synthetique",
+    "scenario_base": "Rootkit patchant le kernel en memoire pour desactiver les mecanismes de securite Windows",
+    "regle_yara": "rule Rootkit_KernelPatch {\n    meta:\n        description = \"Rootkit patchant le kernel en memoire pour desactiver les mecanismes de securite Windows\"\n        author = \"GRPP-2\"\n        date = \"2026\"\n    strings:\n        $s1 = \"NtSetSystemInformation\"\n        $s2 = \"ZwSetSystemInformation\"\n        $s3 = \"KiUserExceptionDispatcher\"\n        $s4 = \"PsGetProcessImageFileName\"\n        $hex1 = { 0x8B 0x15 ?? ?? ?? ?? 0x89 0x45 ?? }\n    condition:\n        ($s1 or $s2) and ($s3 or $s4) and $hex1\n}"
+  }
+]
