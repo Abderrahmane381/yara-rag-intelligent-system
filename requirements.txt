@@ -1,0 +1,8 @@
+faiss-cpu
+langchain
+sentence-transformers
+gradio
+transformers
+bitsandbytes
+torch
+rank-bm25
